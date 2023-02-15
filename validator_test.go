@@ -5650,59 +5650,6 @@ func TestFileValidation(t *testing.T) {
 	}, "Bad field type int")
 }
 
-func TestEthereumAddressValidation(t *testing.T) {
-	validate := New()
-
-	tests := []struct {
-		param    string
-		expected bool
-	}{
-		// All caps.
-		{"0x52908400098527886E0F7030069857D2E4169EE7", true},
-		{"0x8617E340B3D01FA5F11F306F4090FD50E238070D", true},
-
-		// All lower.
-		{"0xde709f2102306220921060314715629080e2fb77", true},
-		{"0x27b1fdb04752bbc536007a920d24acb045561c26", true},
-		{"0x123f681646d4a755815f9cb19e1acc8565a0c2ac", true},
-
-		// Mixed case: runs checksum validation.
-		{"0x02F9AE5f22EA3fA88F05780B30385bECFacbf130", true},
-		{"0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", true},
-		{"0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359", true},
-		{"0xdbF03B407c01E7cD3CBea99509d93f8DDDC8C6FB", true},
-		{"0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb", true},
-		{"0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDB", false}, // Invalid checksum.
-
-		// Other.
-		{"", false},
-		{"D1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb", false},    // Missing "0x" prefix.
-		{"0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDbc", false}, // More than 40 hex digits.
-		{"0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aD", false},   // Less than 40 hex digits.
-		{"0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDw", false},  // Invalid hex digit "w".
-	}
-
-	for i, test := range tests {
-
-		errs := validate.Var(test.param, "eth_addr")
-
-		if test.expected {
-			if !IsEqual(errs, nil) {
-				t.Fatalf("Index: %d eth_addr failed Error: %s", i, errs)
-			}
-		} else {
-			if IsEqual(errs, nil) {
-				t.Fatalf("Index: %d eth_addr failed Error: %s", i, errs)
-			} else {
-				val := getError(errs, "", "")
-				if val.Tag() != "eth_addr" {
-					t.Fatalf("Index: %d Latitude failed Error: %s", i, errs)
-				}
-			}
-		}
-	}
-}
-
 func TestBitcoinAddressValidation(t *testing.T) {
 	validate := New()
 
@@ -7648,82 +7595,6 @@ func TestIsLte(t *testing.T) {
 	timeDurationOmitemptyTest := &TimeDurationOmitemptyTest{time.Duration(0)}
 	errs = validate.Struct(timeDurationOmitemptyTest)
 	Equal(t, errs, nil)
-}
-
-func TestUrnRFC2141(t *testing.T) {
-	tests := []struct {
-		param    string
-		expected bool
-	}{
-		{"urn:a:b", true},
-		{"urn:a::", true},
-		{"urn:a:-", true},
-		{"URN:simple:simple", true},
-		{"urn:urna:simple", true},
-		{"urn:burnout:nss", true},
-		{"urn:burn:nss", true},
-		{"urn:urnurnurn:x", true},
-		{"urn:abcdefghilmnopqrstuvzabcdefghilm:x", true},
-		{"URN:123:x", true},
-		{"URN:abcd-:x", true},
-		{"URN:abcd-abcd:x", true},
-		{"urn:urnx:urn", true},
-		{"urn:ciao:a:b:c", true},
-		{"urn:aaa:x:y:", true},
-		{"urn:ciao:-", true},
-		{"urn:colon:::::nss", true},
-		{"urn:ciao:@!=%2C(xyz)+a,b.*@g=$_'", true},
-		{"URN:hexes:%25", true},
-		{"URN:x:abc%1Dz%2F%3az", true},
-		{"URN:foo:a123,456", true},
-		{"urn:foo:a123,456", true},
-		{"urn:FOO:a123,456", true},
-		{"urn:foo:A123,456", true},
-		{"urn:foo:a123%2C456", true},
-		{"URN:FOO:a123%2c456", true},
-		{"URN:FOO:ABC%FFabc123%2c456", true},
-		{"URN:FOO:ABC%FFabc123%2C456%9A", true},
-		{"urn:ietf:params:scim:schemas:core:2.0:User", true},
-		{"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:meta.lastModified", true},
-		{"URN:-xxx:x", false},
-		{"urn::colon:nss", false},
-		{"urn:abcdefghilmnopqrstuvzabcdefghilmn:specificstring", false},
-		{"URN:a!?:x", false},
-		{"URN:#,:x", false},
-		{"urn:urn:NSS", false},
-		{"urn:URN:NSS", false},
-		{"urn:white space:NSS", false},
-		{"urn:concat:no spaces", false},
-		{"urn:a:%", false},
-		{"urn:", false},
-	}
-
-	tag := "urn_rfc2141"
-
-	validate := New()
-
-	for i, test := range tests {
-
-		errs := validate.Var(test.param, tag)
-
-		if test.expected {
-			if !IsEqual(errs, nil) {
-				t.Fatalf("Index: %d URN failed Error: %s", i, errs)
-			}
-		} else {
-			if IsEqual(errs, nil) {
-				t.Fatalf("Index: %d URN failed Error: %s", i, errs)
-			} else {
-				val := getError(errs, "", "")
-				if val.Tag() != tag {
-					t.Fatalf("Index: %d URN failed Error: %s", i, errs)
-				}
-			}
-		}
-	}
-
-	i := 1
-	PanicMatches(t, func() { _ = validate.Var(i, tag) }, "Bad field type int")
 }
 
 func TestUrl(t *testing.T) {
@@ -11856,49 +11727,6 @@ func TestDurationType(t *testing.T) {
 			NotEqual(t, errs, nil)
 		})
 	}
-}
-
-func TestBCP47LanguageTagValidation(t *testing.T) {
-	tests := []struct {
-		value    string `validate:"bcp47_language_tag"`
-		tag      string
-		expected bool
-	}{
-		{"en-US", "bcp47_language_tag", true},
-		{"en_GB", "bcp47_language_tag", true},
-		{"es", "bcp47_language_tag", true},
-		{"English", "bcp47_language_tag", false},
-		{"ESES", "bcp47_language_tag", false},
-		{"az-Cyrl-AZ", "bcp47_language_tag", true},
-		{"en-029", "bcp47_language_tag", true},
-		{"xog", "bcp47_language_tag", true},
-	}
-
-	validate := New()
-
-	for i, test := range tests {
-
-		errs := validate.Var(test.value, test.tag)
-
-		if test.expected {
-			if !IsEqual(errs, nil) {
-				t.Fatalf("Index: %d locale failed Error: %s", i, errs)
-			}
-		} else {
-			if IsEqual(errs, nil) {
-				t.Fatalf("Index: %d locale failed Error: %s", i, errs)
-			} else {
-				val := getError(errs, "", "")
-				if val.Tag() != "bcp47_language_tag" {
-					t.Fatalf("Index: %d locale failed Error: %s", i, errs)
-				}
-			}
-		}
-	}
-
-	PanicMatches(t, func() {
-		_ = validate.Var(2, "bcp47_language_tag")
-	}, "Bad field type int")
 }
 
 func TestBicIsoFormatValidation(t *testing.T) {

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -16,11 +15,6 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
-
-	"golang.org/x/crypto/sha3"
-	"golang.org/x/text/language"
-
-	urn "github.com/leodido/go-urn"
 )
 
 // Func accepts a FieldLevel interface for all validation needs. The return
@@ -122,7 +116,6 @@ var (
 		"email":                         isEmail,
 		"url":                           isURL,
 		"uri":                           isURI,
-		"urn_rfc2141":                   isUrnRFC2141, // RFC 2141
 		"file":                          isFile,
 		"base64":                        isBase64,
 		"base64url":                     isBase64URL,
@@ -139,7 +132,6 @@ var (
 		"isbn":                          isISBN,
 		"isbn10":                        isISBN10,
 		"isbn13":                        isISBN13,
-		"eth_addr":                      isEthereumAddress,
 		"btc_addr":                      isBitcoinAddress,
 		"btc_addr_bech32":               isBitcoinBech32Address,
 		"uuid":                          isUUID,
@@ -207,7 +199,6 @@ var (
 		"iso3166_2":                     isIso31662,
 		"iso4217":                       isIso4217,
 		"iso4217_numeric":               isIso4217Numeric,
-		"bcp47_language_tag":            isBCP47LanguageTag,
 		"postcode_iso3166_alpha2":       isPostcodeByIso3166Alpha2,
 		"postcode_iso3166_alpha2_field": isPostcodeByIso3166Alpha2Field,
 		"bic":                           isIsoBicFormat,
@@ -607,37 +598,6 @@ func isISBN10(fl FieldLevel) bool {
 	}
 
 	return checksum%11 == 0
-}
-
-// isEthereumAddress is the validation function for validating if the field's value is a valid Ethereum address.
-func isEthereumAddress(fl FieldLevel) bool {
-	address := fl.Field().String()
-
-	if !ethAddressRegex.MatchString(address) {
-		return false
-	}
-
-	if ethAddressRegexUpper.MatchString(address) || ethAddressRegexLower.MatchString(address) {
-		return true
-	}
-
-	// Checksum validation. Reference: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md
-	address = address[2:] // Skip "0x" prefix.
-	h := sha3.NewLegacyKeccak256()
-	// hash.Hash's io.Writer implementation says it never returns an error. https://golang.org/pkg/hash/#Hash
-	_, _ = h.Write([]byte(strings.ToLower(address)))
-	hash := hex.EncodeToString(h.Sum(nil))
-
-	for i := 0; i < len(address); i++ {
-		if address[i] <= '9' { // Skip 0-9 digits: they don't have upper/lower-case.
-			continue
-		}
-		if hash[i] > '7' && address[i] >= 'a' || hash[i] <= '7' && address[i] <= 'F' {
-			return false
-		}
-	}
-
-	return true
 }
 
 // isBitcoinAddress is the validation function for validating if the field's value is a valid btc address
@@ -1365,23 +1325,6 @@ func isURL(fl FieldLevel) bool {
 		}
 
 		return true
-	}
-
-	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
-}
-
-// isUrnRFC2141 is the validation function for validating if the current field's value is a valid URN as per RFC 2141.
-func isUrnRFC2141(fl FieldLevel) bool {
-	field := fl.Field()
-
-	switch field.Kind() {
-	case reflect.String:
-
-		str := field.String()
-
-		_, match := urn.Parse([]byte(str))
-
-		return match
 	}
 
 	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
@@ -2451,18 +2394,6 @@ func isIso4217Numeric(fl FieldLevel) bool {
 		panic(fmt.Sprintf("Bad field type %T", field.Interface()))
 	}
 	return iso4217_numeric[code]
-}
-
-// isBCP47LanguageTag is the validation function for validating if the current field's value is a valid BCP 47 language tag, as parsed by language.Parse
-func isBCP47LanguageTag(fl FieldLevel) bool {
-	field := fl.Field()
-
-	if field.Kind() == reflect.String {
-		_, err := language.Parse(field.String())
-		return err == nil
-	}
-
-	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
 }
 
 // isIsoBicFormat is the validation function for validating if the current field's value is a valid Business Identifier Code (SWIFT code), defined in ISO 9362

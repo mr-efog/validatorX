@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-playground/validator/v10"
+
+	"github.com/beautifulentropy/validator/v10"
 )
 
 type Data struct {

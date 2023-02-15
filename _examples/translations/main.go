@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/beautifulentropy/validator/v10"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
-	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 )
 
